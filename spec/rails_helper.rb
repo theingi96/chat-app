@@ -33,18 +33,46 @@ rescue ActiveRecord::PendingMigrationError => e
   abort e.to_s.strip
 end
 I18n.locale = "en"
+
+Rails.root.glob('spec/support/**/*.rb').sort_by(&:to_s).each { |f| require f }
+
 RSpec.configure do |config|
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [
     Rails.root.join('spec/fixtures')
   ]
+  config.include SignInSupport
 
   # If you're not using ActiveRecord, or you'd prefer not to run each of your
   # examples within a transaction, remove the following line or assign false
   # instead of true.
   config.use_transactional_fixtures = true
 
-  # You can uncomment this line to turn off ActiveRecord support entirely.
+  #ဒီကနေစပြင် ပတ်လမ်း အတွက်
+  config.infer_spec_type_from_file_location!
+
+  # Filter lines from Rails gems in backtraces.
+  config.filter_rails_from_backtrace!
+  # arbitrary gems may also be filtered via:
+  config.before(:each, type: :system) do
+    # js: true မပါဘဲ run ရင် rack_test ကို အသုံးပြုခြင်း
+    driven_by :rack_test
+  end
+
+  config.before(:each, type: :system, js: true) do
+    # JavaScript (js: true) ပါတဲ့ Test တွေအတွက် Browser ကို သတ်မှတ်ခြင်း
+    # ဤနေရာတွင် Error မဖြစ်စေရန် Headless Chrome ကို သုံးရပါမည်။
+    if ENV['SELENIUM_DRIVER']
+      driven_by ENV['SELENIUM_DRIVER'].to_sym
+    elsif ENV['CI'] # CI ပတ်ဝန်းကျင်အတွက်
+      driven_by :selenium, using: :headless_chrome, screen_size: [1400, 1400]
+    else
+      # စက်ထဲမှာ Chrome Install လုပ်ထားရင် :selenium_chrome_headless ကို သုံးပါ
+      driven_by :selenium_chrome_headless
+    end
+  end
+  #ဒီအထိ
+    # You can uncomment this line to turn off ActiveRecord support entirely.
   # config.use_active_record = false
 
   # RSpec Rails uses metadata to mix in different behaviours to your tests,
